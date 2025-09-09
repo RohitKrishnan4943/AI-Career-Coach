@@ -4,36 +4,30 @@ from werkzeug.utils import secure_filename
 import PyPDF2
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from langchain_openai  import ChatOpenAI 
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
-# from langchain_community.document_loaders import PyPDFLoader
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-
 from langchain.text_splitter import CharacterTextSplitter
+from dotenv import load_dotenv  
 
 
-
+load_dotenv()  
 text_splitter = CharacterTextSplitter(
-            separator='\n',
-            chunk_size=2000,
-            chunk_overlap=200,
-            length_function=len,
-        )
+    separator='\n',
+    chunk_size=2000,
+    chunk_overlap=200,
+    length_function=len,
+)
 
-embeddings = HuggingFaceEmbeddings()
-
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 def perform_qa(query):
-        
-        db= FAISS.load_local("vector_index", embeddings, allow_dangerous_deserialization=True)
-        retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": 4})
-        rqa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
-        result = rqa.invoke(query)
-        return result['result']
-
-
-
+    db = FAISS.load_local("vector_index", embeddings, allow_dangerous_deserialization=True)
+    retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+    rqa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
+    result = rqa.invoke(query)
+    return result['result']
 
 app = Flask(__name__)
 
@@ -43,8 +37,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-    
-
 
 def extract_text_from_pdf(pdf_path):
     with open(pdf_path, 'rb') as file:
@@ -54,15 +46,11 @@ def extract_text_from_pdf(pdf_path):
             text += reader.pages[page_num].extract_text()
     return text
 
-
-llm = ChatOpenAI(
-    model="gpt-4o",
+llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash-latest",
     temperature=0,
-  
-    api_key="Your api key"
-   
+    google_api_key=os.environ.get("GOOGLE_API_KEY")  # Replace with your actual API key
 )
-
 
 resume_summary_template = """
 Role: You are an AI Career Coach.
@@ -83,23 +71,19 @@ Requirements:
 
 """
 
-
 resume_prompt = PromptTemplate(
     input_variables=["resume"],
     template=resume_summary_template,
 )
-
 
 resume_analysis_chain = LLMChain(
     llm=llm,
     prompt=resume_prompt,
 )
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -117,17 +101,13 @@ def upload_file():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
         
-        # Extracted   the  text from the PDF
+        # Extract text from the PDF
         resume_text = extract_text_from_pdf(file_path)
         splitted_text = text_splitter.split_text(resume_text)
         vectorstore = FAISS.from_texts(splitted_text, embeddings)
         vectorstore.save_local("vector_index")
         
-        
-        
-        
-        # print(proposal_text)
-        # Run SWOT analysis using the LLM chain
+        # Run resume analysis using the LLM chain
         resume_analysis = resume_analysis_chain.run(resume=resume_text)
         
         return render_template('results.html', resume_analysis=resume_analysis)
@@ -140,8 +120,5 @@ def ask_query():
         return render_template('qa_results.html', query=query, result=result)
     return render_template('ask.html')
 
-
-
 if __name__ == "__main__":
     app.run(debug=True)
-
