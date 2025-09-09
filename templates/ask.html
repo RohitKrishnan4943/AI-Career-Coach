@@ -3,58 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ask a Question</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/framer-motion@10.12.16/dist/framer-motion.js"></script>
+    <title>Ask Questions - AI Career Coach</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .ask-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+        }
+        .question-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .form-control {
+            font-size: 18px;
+            padding: 15px;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            height: 120px;
+            resize: vertical;
+        }
+        .form-control:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .example-questions {
+            margin-top: 30px;
+        }
+        .example-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .example-card:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+    </style>
 </head>
-<body class="bg-white min-h-screen flex items-center justify-center p-4">
-    <div id="container" class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-        <h1 class="text-4xl font-bold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-800">Ask a Question</h1>
-        <form action="/ask" method="POST" class="space-y-4">
-            <div class="relative">
-                <input type="text" name="query" placeholder="Enter your question" required
-                    class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 transition duration-200 ease-in-out"
-                >
-                <span class="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">
-                        <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-                    </svg>
-                </span>
+<body>
+    <div class="container">
+        <div class="ask-container">
+            <div class="text-center mb-4">
+                <h1 class="display-4 fw-bold text-primary mb-2">
+                    <i class="fas fa-question-circle me-2"></i>Ask Questions
+                </h1>
+                <p class="lead text-muted">Get answers about your resume and career path</p>
             </div>
-            <button type="submit" 
-                class="w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition duration-200 ease-in-out transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-opacity-50"
-            >
-                Submit
-            </button>
-        </form>
+
+            <form action="/ask" method="post">
+                <div class="question-box">
+                    <label for="query" class="form-label fw-bold fs-5">Your Question:</label>
+                    <textarea class="form-control" id="query" name="query" placeholder="Ask anything about your resume, skills, career options, or job search..." required></textarea>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-paper-plane me-2"></i>Get Answer
+                    </button>
+                </div>
+            </form>
+
+            <div class="example-questions">
+                <h4 class="mb-3">💡 Example Questions:</h4>
+                <div class="example-card" onclick="document.getElementById('query').value = 'What are my strongest technical skills?'">
+                    "What are my strongest technical skills?"
+                </div>
+                <div class="example-card" onclick="document.getElementById('query').value = 'How can I improve my resume for software engineering roles?'">
+                    "How can I improve my resume for software engineering roles?"
+                </div>
+                <div class="example-card" onclick="document.getElementById('query').value = 'What career paths are suitable based on my experience?'">
+                    "What career paths are suitable based on my experience?"
+                </div>
+                <div class="example-card" onclick="document.getElementById('query').value = 'Should I add more projects to my resume?'">
+                    "Should I add more projects to my resume?"
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
     </div>
 
-    <script>
-        const { motion } = window.Motion;
-
-        const container = document.getElementById('container');
-        
-        motion(container, {
-            initial: { opacity: 0, y: 50 },
-            animate: { opacity: 1, y: 0 },
-            transition: { duration: 0.5, ease: "easeOut" }
-        });
-
-        const form = container.querySelector('form');
-        const input = form.querySelector('input');
-        const button = form.querySelector('button');
-
-        motion(input, {
-            whileFocus: { scale: 1.02 },
-            transition: { duration: 0.2 }
-        });
-
-        motion(button, {
-            whileHover: { scale: 1.05 },
-            whileTap: { scale: 0.95 },
-            transition: { duration: 0.2 }
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

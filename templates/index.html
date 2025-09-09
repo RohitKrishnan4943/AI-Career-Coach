@@ -3,82 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Evaluation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/framer-motion/dist/framer-motion.js"></script>
+    <title>AI Career Coach - Resume Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .hero-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 50px auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+        }
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-box:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .features {
+            margin-top: 40px;
+        }
+        .feature-item {
+            text-align: center;
+            padding: 20px;
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-white ">
-    <main class=" max-w-7xl mx-auto min-h-screen flex  items-center  ">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 lg:p-8">
-            <!-- Left Content -->
-            <div class="flex flex-col justify-start space-y-6" id="content">
-                <div class=" items-end text-xm font-bold  text-blue-500">
-                    <img src="https://res.cloudinary.com/dtsuvx8dz/image/upload/v1706986565/hqatxpsjdg3zeql20jfe.png" class="" alt="zeplogo"/>
-                    <h1>Zep Analytics</h1>
-                </div>
-                <h1 class="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
-                    <span class="underline underline-offset-4 decoration-blue-500 ">Resume</span> Evaluation & Expert Career Coaching
-                </h1>
-                <p class="text-lg text-gray-600 max-w-xl">
-                    Transform your career journey with professional guidance. Upload your resume for expert evaluation and personalized coaching.
-                </p>
-                <form action="/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">
-                            Choose a PDF file:
-                        </label>
-                        <div class="flex items-center space-x-3">
-                            <input 
-                                type="file" 
-                                name="file" 
-                                accept=".pdf" 
-                                required
-                                class="block w-full text-sm text-gray-500 border-2 max-w-lg py-2 rounded-md
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-full file:border-0
-                                    file:text-sm file:font-semibold file:bg-slate-100
-                                    file:bg-gray-50 file:text-gray-700   file:drop-shadow-sm
-                                    hover:file:bg-gray-100"
-                                    
-                            >
-                        </div>
-                    </div>
-                    <button 
-                        type="submit"
-                        class="inline-flex items-center px-6 py-3 border border-transparent 
-                               text-base font-medium rounded-md text-white bg-blue-600 
-                               hover:bg-blue-700 focus:outline-none focus:ring-2 
-                               focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                    >
-                        Submit Resume
-                    </button>
-                </form>
+<body>
+    <div class="container">
+        <div class="hero-section">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold text-primary mb-3">🤖 AI Career Coach</h1>
+                <p class="lead text-muted">Upload your resume and get instant AI-powered career insights and analysis</p>
             </div>
 
-            <!-- Right Image -->
-            <div class="hidden lg:flex relative justify-start items-center">
-                <img 
-                    src="https://res.cloudinary.com/dtsuvx8dz/image/upload/v1714291460/nfbn9ltv8fugtboqcxw0.gif" 
-                    alt="Career coaching illustration" 
-                    class="w- h- object-cover rounded-xl"
-                >
-                <div class="absolute inset-0 "></div>
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h4 class="mb-3">Upload Your Resume (PDF)</h4>
+                    <p class="text-muted">Click here or drag and drop your PDF resume</p>
+                    <input type="file" id="fileInput" name="file" accept=".pdf" style="display: none;" onchange="this.form.submit()">
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-robot me-2"></i>Analyze Resume
+                    </button>
+                </div>
+            </form>
+
+            <div class="features row mt-5">
+                <div class="col-md-4 feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h5>Career Analysis</h5>
+                    <p class="text-muted">Get detailed insights about your career trajectory</p>
+                </div>
+                <div class="col-md-4 feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h5>Skill Assessment</h5>
+                    <p class="text-muted">Identify your strengths and areas for improvement</p>
+                </div>
+                <div class="col-md-4 feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h5>Q&A Support</h5>
+                    <p class="text-muted">Ask questions about your resume and career</p>
+                </div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <script>
-        // Simple animation with Framer Motion
-        const content = document.getElementById('content');
-        content.style.opacity = '0';
-        content.style.transform = 'translateY(20px)';
-
-        window.addEventListener('load', () => {
-            content.style.transition = 'all 0.8s ease-out';
-            content.style.opacity = '1';
-            content.style.transform = 'translateY(0)';
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
