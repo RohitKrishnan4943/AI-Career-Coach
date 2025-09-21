@@ -3,5 +3,6 @@ PyPDF2
 pdfplumber
 langchain-groq
 sentence-transformers
+gunicorn
 
 
