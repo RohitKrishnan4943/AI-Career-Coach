@@ -2,17 +2,27 @@ from flask import Flask, request, render_template, redirect, url_for
 import os
 from werkzeug.utils import secure_filename
 import PyPDF2
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain.chains import RetrievalQA
-from langchain.text_splitter import CharacterTextSplitter
-from dotenv import load_dotenv  
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
 
-load_dotenv()  
+# Import LangChain components with error handling
+try:
+    from langchain.prompts import PromptTemplate
+    from langchain.chains import LLMChain
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_community.vectorstores import FAISS
+    from langchain.chains import RetrievalQA
+    from langchain.text_splitter import CharacterTextSplitter
+    print("✅ All LangChain imports successful")
+except ImportError as e:
+    print(f"❌ LangChain import error: {e}")
+    print("Please check your package versions")
+    exit(1)
+
+# Initialize components
 text_splitter = CharacterTextSplitter(
     separator='\n',
     chunk_size=2000,
@@ -21,13 +31,6 @@ text_splitter = CharacterTextSplitter(
 )
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-def perform_qa(query):
-    db = FAISS.load_local("vector_index", embeddings, allow_dangerous_deserialization=True)
-    retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": 4})
-    rqa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
-    result = rqa.invoke(query)
-    return result['result']
 
 app = Flask(__name__)
 
@@ -46,11 +49,27 @@ def extract_text_from_pdf(pdf_path):
             text += reader.pages[page_num].extract_text()
     return text
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash-latest",
-    temperature=0,
-    google_api_key=os.environ.get("GOOGLE_API_KEY")  # Replace with your actual API key
-)
+# Initialize LLM
+try:
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash-latest",
+        temperature=0,
+        google_api_key=os.environ.get("GOOGLE_API_KEY")
+    )
+    print("✅ LLM initialized successfully")
+except Exception as e:
+    print(f"❌ LLM initialization error: {e}")
+    print("Please check your GOOGLE_API_KEY in .env file")
+
+def perform_qa(query):
+    try:
+        db = FAISS.load_local("vector_index", embeddings, allow_dangerous_deserialization=True)
+        retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+        rqa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
+        result = rqa.invoke(query)
+        return result['result']
+    except Exception as e:
+        return f"Error processing query: {str(e)}"
 
 resume_summary_template = """
 Role: You are an AI Career Coach.
@@ -96,21 +115,24 @@ def upload_file():
         return redirect(url_for('index'))
     
     if file:
-        # Save the uploaded file
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        
-        # Extract text from the PDF
-        resume_text = extract_text_from_pdf(file_path)
-        splitted_text = text_splitter.split_text(resume_text)
-        vectorstore = FAISS.from_texts(splitted_text, embeddings)
-        vectorstore.save_local("vector_index")
-        
-        # Run resume analysis using the LLM chain
-        resume_analysis = resume_analysis_chain.run(resume=resume_text)
-        
-        return render_template('results.html', resume_analysis=resume_analysis)
+        try:
+            # Save the uploaded file
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Extract text from the PDF
+            resume_text = extract_text_from_pdf(file_path)
+            splitted_text = text_splitter.split_text(resume_text)
+            vectorstore = FAISS.from_texts(splitted_text, embeddings)
+            vectorstore.save_local("vector_index")
+            
+            # Run resume analysis using the LLM chain
+            resume_analysis = resume_analysis_chain.run(resume=resume_text)
+            
+            return render_template('results.html', resume_analysis=resume_analysis)
+        except Exception as e:
+            return f"Error processing file: {str(e)}"
 
 @app.route('/ask', methods=['GET', 'POST'])
 def ask_query():
@@ -121,4 +143,5 @@ def ask_query():
     return render_template('ask.html')
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
