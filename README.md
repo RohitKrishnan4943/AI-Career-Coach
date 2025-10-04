@@ -225,16 +225,4 @@ Contributions are welcome! Please follow these steps:
 - FAISS for efficient vector search
 - Bootstrap for beautiful UI components
 
-flask
-werkzeug
-pypdf2
-langchain
-langchain-community
-langchain-google-genai
-google-generativeai
-sentence-transformers
-faiss-cpu
-python-dotenv
-huggingface-hub
-torch
-transformers
+

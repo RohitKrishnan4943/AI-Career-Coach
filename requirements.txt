@@ -1,22 +1,13 @@
-# Core Flask
 flask
 werkzeug
 pypdf2
-python-dotenv
-gunicorn
-
-# LangChain
 langchain
 langchain-community
 langchain-google-genai
 google-generativeai
-
-# CPU-only PyTorch (IMPORTANT: Install this first to avoid GPU version)
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
-
-# ML packages
 sentence-transformers
 faiss-cpu
-transformers
+python-dotenv
 huggingface-hub
+torch
+transformers
