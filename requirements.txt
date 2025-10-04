@@ -8,6 +8,4 @@ google-generativeai
 sentence-transformers
 faiss-cpu
 python-dotenv
-huggingface-hub
-torch
-transformers
+gunicorn

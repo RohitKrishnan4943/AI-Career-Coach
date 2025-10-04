@@ -11,9 +11,23 @@ from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
+app = Flask(__name__)
+
+# File upload configuration
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Create required directories
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+if not os.path.exists('vector_index'):
+    os.makedirs('vector_index')
+
+# Initialize text splitter (moved outside to avoid recreation)
 text_splitter = CharacterTextSplitter(
     separator='\n',
     chunk_size=2000,
@@ -21,28 +35,33 @@ text_splitter = CharacterTextSplitter(
     length_function=len,
 )
 
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# Initialize embeddings (lazy loading)
+_embeddings = None
+def get_embeddings():
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={'device': 'cpu'},
+            encode_kwargs={'normalize_embeddings': True}
+        )
+    return _embeddings
 
-
-def perform_qa(query):
-    db = FAISS.load_local("vector_index", embeddings, allow_dangerous_deserialization=True)
-    retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": 4})
-    rqa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
-    result = rqa.invoke(query)
-    return result['result']
-
-
-app = Flask(__name__)
-
-# File upload configuration
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Initialize LLM (lazy loading)
+_llm = None
+def get_llm():
+    global _llm
+    if _llm is None:
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            temperature=0,
+            google_api_key=os.environ.get("GOOGLE_API_KEY"),
+        )
+    return _llm
 
 
 def extract_text_from_pdf(pdf_path):
+    """Extract text from PDF file"""
     with open(pdf_path, 'rb') as file:
         reader = PyPDF2.PdfReader(file)
         text = ""
@@ -51,13 +70,26 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    google_api_key=os.environ.get("GOOGLE_API_KEY"),
-)
+def perform_qa(query):
+    """Perform Q&A using vector database"""
+    try:
+        embeddings = get_embeddings()
+        db = FAISS.load_local("vector_index", embeddings, allow_dangerous_deserialization=True)
+        retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+        llm = get_llm()
+        rqa = RetrievalQA.from_chain_type(
+            llm=llm, 
+            chain_type="stuff", 
+            retriever=retriever, 
+            return_source_documents=True
+        )
+        result = rqa.invoke(query)
+        return result['result']
+    except Exception as e:
+        return f"Error processing query: {str(e)}"
 
 
+# Resume analysis prompt template
 resume_summary_template = """
 Role: You are an AI Career Coach.
 
@@ -74,17 +106,11 @@ Provide a concise summary of the resume, focusing on the candidate's skills, exp
 
 Requirements:
 {resume}
-
 """
 
 resume_prompt = PromptTemplate(
     input_variables=["resume"],
     template=resume_summary_template,
-)
-
-resume_analysis_chain = LLMChain(
-    llm=llm,
-    prompt=resume_prompt,
 )
 
 
@@ -103,36 +129,57 @@ def upload_file():
     if file.filename == '':
         return redirect(url_for('index'))
     
-    if file:
-        # Save the uploaded file
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        
-        # Extract text from the PDF
-        resume_text = extract_text_from_pdf(file_path)
-        splitted_text = text_splitter.split_text(resume_text)
-        vectorstore = FAISS.from_texts(splitted_text, embeddings)
-        vectorstore.save_local("vector_index")
-        
-        # Run resume analysis using the LLM chain
-        resume_analysis = resume_analysis_chain.invoke({"resume": resume_text})
-        
-        # Extract text from response
-        if isinstance(resume_analysis, dict):
-            resume_analysis = resume_analysis.get('text', resume_analysis)
-        
-        return render_template('results.html', resume_analysis=resume_analysis)
+    if file and file.filename.endswith('.pdf'):
+        try:
+            # Save the uploaded file
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Extract text from the PDF
+            resume_text = extract_text_from_pdf(file_path)
+            
+            # Split text and create vector store
+            splitted_text = text_splitter.split_text(resume_text)
+            embeddings = get_embeddings()
+            vectorstore = FAISS.from_texts(splitted_text, embeddings)
+            vectorstore.save_local("vector_index")
+            
+            # Run resume analysis using the LLM chain
+            llm = get_llm()
+            resume_analysis_chain = LLMChain(llm=llm, prompt=resume_prompt)
+            resume_analysis = resume_analysis_chain.invoke({"resume": resume_text})
+            
+            # Extract text from response
+            if isinstance(resume_analysis, dict):
+                resume_analysis = resume_analysis.get('text', resume_analysis)
+            
+            # Clean up uploaded file to save space
+            os.remove(file_path)
+            
+            return render_template('results.html', resume_analysis=resume_analysis)
+        except Exception as e:
+            return f"Error processing file: {str(e)}", 500
+    
+    return redirect(url_for('index'))
 
 
 @app.route('/ask', methods=['GET', 'POST'])
 def ask_query():
     if request.method == 'POST':
-        query = request.form['query']
-        result = perform_qa(query)
-        return render_template('qa_results.html', query=query, result=result)
+        query = request.form.get('query', '')
+        if query:
+            result = perform_qa(query)
+            return render_template('qa_results.html', query=query, result=result)
     return render_template('ask.html')
 
 
+@app.route('/health')
+def health():
+    """Health check endpoint for Render"""
+    return {'status': 'healthy'}, 200
+
+
 if __name__ == "__main__":
+    # For local development
     app.run(debug=True)
